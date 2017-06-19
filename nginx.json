@@ -1,0 +1,44 @@
+{
+	"config": {
+		"listen": [
+			"10.1.2.3",
+			"192.168.2.3",
+			"[fd0c:dc61:ebc5:b206::]"
+		]
+	},
+	"upstreams": {
+		"multiple-http-upstreams": {
+			"scheme": "http",
+			"hosts": [
+				"1.1.1.1:8080",
+				"2.2.2.2",
+				"[fdb9:8208:f877:1cc8::]"
+			]
+		},
+		"multiple-https-upstreams": {
+			"scheme": "https",
+			"hosts": [
+				"3.3.3.3:8443",
+				"4.4.4.4",
+				"[fd36:c4dd:84c3:d99b::]"
+			]
+		}
+	},
+	"vhosts": {
+		"my-website.net": "multiple-http-upstreams",
+		"my-other-website.net": {
+			"target": "multiple-https-upstreams"
+		},
+		"other-website-with-same-backend.com": {
+			"target": "multiple-http-upstreams",
+			"reqheaders": {
+				"Host": "actual-website.de"
+			}
+		},
+		"website-without-upstream-config.io": "http://5.5.5.5",
+		"forcedssl.sh": {
+			"target": "multiple-https-upstreams",
+			"forcessl": true
+		}
+	}
+}
