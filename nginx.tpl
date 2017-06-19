@@ -24,14 +24,14 @@ http {
 	# proxy_cache_background_update off;
 	proxy_cache_bypass $http_authorization;
 	proxy_cache_convert_head on;
-	proxy_cache_key $scheme$host$request_uri;
+	proxy_cache_key "$request_method $scheme://$host$request_uri";
 	# proxy_cache_key $scheme$proxy_host$request_uri;
 	proxy_cache_lock off;
 	proxy_cache_lock_age 5s;
 	# proxy_cache_max_range_offset
 	proxy_cache_methods GET HEAD;
 	proxy_cache_min_uses 1;
-	proxy_cache_path /var/lib/nginx/body/cache levels=1:2 keys_zone=nginxcache:16m inactive=1h max_size=5g;
+	proxy_cache_path /var/lib/nginx/body/cache levels=2:2 keys_zone=nginxcache:16m inactive=1h max_size=5g;
 	# proxy_cache_purge
 	proxy_cache_revalidate off;
 	proxy_cache_use_stale error timeout invalid_header updating http_500 http_502 http_503 http_504;
@@ -39,6 +39,16 @@ http {
 	proxy_cache_valid 404 1m;
 	proxy_no_cache $http_authorization;
 	proxy_ignore_headers X-Accel-Expires Expires Cache-Control;
+	proxy_redirect off;
+	proxy_read_timeout 21600s;
+	proxy_send_timeout 300s;
+	proxy_http_version 1.1;
+	proxy_buffering off;
+	proxy_request_buffering off;
+	proxy_ignore_headers X-Accel-Redirect X-Accel-Limit-Rate X-Accel-Buffering X-Accel-Charset;
+	proxy_connect_timeout 15s;
+	proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+	proxy_next_upstream_tries 2;
 	server {
 		{{~dot.config.listen :listenip}}
 			listen {{=listenip}}:80 default_server;
@@ -107,19 +117,18 @@ http {
 					{{?typeof dot.vhosts[vhostid] !== 'object' || typeof dot.vhosts[vhostid].reqheaders !== 'object' || Object.keys(dot.vhosts[vhostid].reqheaders).map(Function.prototype.call, String.prototype.toLowerCase).indexOf('host') === -1}}
 						proxy_set_header Host $http_host;
 					{{?}}
-					proxy_set_header X-Real-Ip $remote_addr;
-					proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-					proxy_set_header X-Forwarded-Proto $scheme;
-					proxy_set_header X-Secure-Request 'false';
-					proxy_set_header Upgrade $http_upgrade;
-					proxy_set_header Connection "upgrade";
 					{{?typeof dot.vhosts[vhostid] === 'object' && typeof dot.vhosts[vhostid].reqheaders === 'object'}}
 						{{~Object.keys(dot.vhosts[vhostid].reqheaders) :reqheader}}
 							proxy_set_header {{=reqheader}} '{{=dot.vhosts[vhostid].reqheaders[reqheader]}}';
 						{{~}}
 					{{?}}
-					proxy_http_version 1.1;
 					proxy_buffering on;
+					proxy_set_header X-Secure-Request 'false';
+					proxy_set_header X-Real-Ip $remote_addr;
+					proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+					proxy_set_header X-Forwarded-Proto $scheme;
+					proxy_set_header Upgrade $http_upgrade;
+					proxy_set_header Connection "upgrade";
 				}
 				location / {
 					{{?typeof dot.vhosts[vhostid] === 'string' && dot.upstreams[dot.vhosts[vhostid]]}}
@@ -134,19 +143,17 @@ http {
 					{{?typeof dot.vhosts[vhostid] !== 'object' || typeof dot.vhosts[vhostid].reqheaders !== 'object' || Object.keys(dot.vhosts[vhostid].reqheaders).map(Function.prototype.call, String.prototype.toLowerCase).indexOf('host') === -1}}
 						proxy_set_header Host $http_host;
 					{{?}}
-					proxy_set_header X-Real-Ip $remote_addr;
-					proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-					proxy_set_header X-Forwarded-Proto $scheme;
-					proxy_set_header X-Secure-Request 'false';
-					proxy_set_header Upgrade $http_upgrade;
-					proxy_set_header Connection "upgrade";
 					{{?typeof dot.vhosts[vhostid] === 'object' && typeof dot.vhosts[vhostid].reqheaders === 'object'}}
 						{{~Object.keys(dot.vhosts[vhostid].reqheaders) :reqheader}}
 							proxy_set_header {{=reqheader}} '{{=dot.vhosts[vhostid].reqheaders[reqheader]}}';
 						{{~}}
 					{{?}}
-					proxy_http_version 1.1;
-					proxy_buffering off;
+					proxy_set_header X-Secure-Request 'false';
+					proxy_set_header X-Real-Ip $remote_addr;
+					proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+					proxy_set_header X-Forwarded-Proto $scheme;
+					proxy_set_header Upgrade $http_upgrade;
+					proxy_set_header Connection "upgrade";
 				}
 			{{?}}
 		}
@@ -184,19 +191,18 @@ http {
 					{{?typeof dot.vhosts[vhostid] !== 'object' || typeof dot.vhosts[vhostid].reqheaders !== 'object' || Object.keys(dot.vhosts[vhostid].reqheaders).map(Function.prototype.call, String.prototype.toLowerCase).indexOf('host') === -1}}
 						proxy_set_header Host $http_host;
 					{{?}}
-					proxy_set_header X-Real-Ip $remote_addr;
-					proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-					proxy_set_header X-Forwarded-Proto $scheme;
-					proxy_set_header X-Secure-Request 'true';
-					proxy_set_header Upgrade $http_upgrade;
-					proxy_set_header Connection "upgrade";
 					{{?typeof dot.vhosts[vhostid] === 'object' && typeof dot.vhosts[vhostid].reqheaders === 'object'}}
 						{{~Object.keys(dot.vhosts[vhostid].reqheaders) :reqheader}}
 							proxy_set_header {{=reqheader}} '{{=dot.vhosts[vhostid].reqheaders[reqheader]}}';
 						{{~}}
 					{{?}}
-					proxy_http_version 1.1;
 					proxy_buffering on;
+					proxy_set_header X-Secure-Request 'true';
+					proxy_set_header X-Real-Ip $remote_addr;
+					proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+					proxy_set_header X-Forwarded-Proto $scheme;
+					proxy_set_header Upgrade $http_upgrade;
+					proxy_set_header Connection "upgrade";
 				}
 				location / {
 					{{?typeof dot.vhosts[vhostid] === 'string' && dot.upstreams[dot.vhosts[vhostid]]}}
@@ -211,19 +217,17 @@ http {
 					{{?typeof dot.vhosts[vhostid] !== 'object' || typeof dot.vhosts[vhostid].reqheaders !== 'object' || Object.keys(dot.vhosts[vhostid].reqheaders).map(Function.prototype.call, String.prototype.toLowerCase).indexOf('host') === -1}}
 						proxy_set_header Host $http_host;
 					{{?}}
-					proxy_set_header X-Real-Ip $remote_addr;
-					proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-					proxy_set_header X-Forwarded-Proto $scheme;
-					proxy_set_header X-Secure-Request 'true';
-					proxy_set_header Upgrade $http_upgrade;
-					proxy_set_header Connection "upgrade";
 					{{?typeof dot.vhosts[vhostid] === 'object' && typeof dot.vhosts[vhostid].reqheaders === 'object'}}
 						{{~Object.keys(dot.vhosts[vhostid].reqheaders) :reqheader}}
 							proxy_set_header {{=reqheader}} '{{=dot.vhosts[vhostid].reqheaders[reqheader]}}';
 						{{~}}
 					{{?}}
-					proxy_http_version 1.1;
-					proxy_buffering off;
+					proxy_set_header X-Secure-Request 'true';
+					proxy_set_header X-Real-Ip $remote_addr;
+					proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+					proxy_set_header X-Forwarded-Proto $scheme;
+					proxy_set_header Upgrade $http_upgrade;
+					proxy_set_header Connection "upgrade";
 				}
 			{{?}}
 		}
